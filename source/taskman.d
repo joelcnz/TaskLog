@@ -57,8 +57,11 @@ public:
 		}
 	}
 
-	void printDay(int fd, int fm, int fy, int tod = 0, int tom = 0, int toy = 0) {
+	string printDay(int fd, int fm, int fy, int tod = 0, int tom = 0, int toy = 0) {
 		import std.range;
+
+		string result;
+		
 		int numberOfItem = 1;
 		bool found = false;
 		bool last = false;
@@ -72,8 +75,10 @@ public:
 				foreach(i, task; _doneTasks)
 						with(task.dateTime)
 							if (day == id && month == im && year == iy) {
-								_textTank ~= task.viewInfo(
+								immutable info = task.viewInfo(
 									numberOfItem, cast(int)i, Collum.straitDown, TaskType.done, _cformat );
+								_textTank ~= info;
+								result ~= info;
 								numberOfItem++;
 								found = true;
 							}
@@ -97,15 +102,19 @@ public:
 			foreach(i, task; _doneTasks) {
 				with(task.dateTime)
 					if (day == fd && month == fm && year == fy) {
-						_textTank ~= task.viewInfo(
+						immutable info = task.viewInfo(
 							numberOfItem, cast(int)i, Collum.straitDown, TaskType.done, _cformat );
+						_textTank ~= info;
+						result ~= info;
 						numberOfItem++;
 						found = true;
 					}
 			}
 
 		if (! found)
-			writeln("No results!");
+			result = "No results!";
+		
+		return result;
 	} // printDay
 
 	void saveTextTank(string fileName) {

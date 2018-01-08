@@ -12,11 +12,11 @@ exampleTests.d
 *.html
 *.lnk
 *.exe
-./tasklog
+./timelog
 select
 sourceOld
 obj
 other
 *.sh
 *.json
-tasklog
+timelog

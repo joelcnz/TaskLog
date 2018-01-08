@@ -15,10 +15,10 @@
  * ---
  # //                                           Optional start time
  * // Referance number                          |      Optional end time
- * // |                                         |      |      Optional time taken
- * // |  Task done    Date                      |      |      |          Optional comment
- * // |\ |---------\  |-----------------------\ |----\ |----\ |--------\ |---------\
- * // 17 Achievement  Monday September 20, 2010 5:43pm 6:00pm 20 minutes Bit of work
+ * // |                                         |      |         Optional time taken
+ * // |  Task done    Date                      |      |         |          Optional comment
+ * // |\ |---------\  |-----------------------\ |----\ |-------\ |--------\ |---------\
+ * // 17 Achievement  Monday September 20, 2010 5:43pm -> 6:00pm 20 minutes Bit of work
  * // Binary form:
  * // (int for id) (int for string task length) (string task) (long for date and time etc) (int for hours minutes) (int for string length) (string comment)
  * I think now it has varibles for whether to show time of day or not. For start time, end time and time duration
@@ -31,12 +31,14 @@
 module main;
 
 private {
+	import std.conv;
 	import std.stdio;
 	import std.string;
-	import std.conv;
 
+	import base, gui, task, taskman;
+
+	import dlangui;
 	//import jtask.taskmanbb;
-	import base, control, taskman, task;
 }
 
 /+
@@ -57,23 +59,19 @@ pragma(lib, "curses");
 	Loads the task possibles from a text file, processes them and adds them to the task object.<br>
 	Then creates a control object and runs its run method.
 */
-version(DUinit) {
-//	import dunit;
-	int main (string[] args) {
-//		runTests();
-		return 0;
-	}
-} else {
-	void main()
-	{
-		version(unittest) { } else {
-			TaskMan taskMan; // handles the task objects
-			
-			processCategory(taskMan);
-			tasksHidden(taskMan);
+mixin APP_ENTRY_POINT;
 
-			Control control; // declare a control object
-			control.run(taskMan); // pass task manager object to control methods
-		}
-	}
+/// entry point for dlangui based application
+extern (C) int UIAppMain(string[] args) {
+	TaskMan taskMan; // handles the task objects
+	
+	processCategory(taskMan);
+	tasksHidden(taskMan);
+	Gui guj;
+	guj.setup(taskMan);
+	//Control control; // declare a control object
+	//control.setup(taskMan); // pass task manager object to control methods
+
+    // run message loop
+    return Platform.instance.enterMessageLoop();
 }

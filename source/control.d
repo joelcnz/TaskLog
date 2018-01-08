@@ -151,7 +151,7 @@ private
 //	import dunit;
 	import jmisc;
 	import jtask.basebb;
-	import base, main, taskman, task;
+	import base, gui, main, taskman, task;
 }
 
 //immutable jechoState = false;
@@ -164,7 +164,6 @@ private
 struct Control {
 private:
 //	public mixin TestMixin;
-
 	int _commandCount;
 	TaskMan _taskMan; // instance variable - in charge of the tasks
 	enum InputType {userInput, autoInput};
@@ -272,6 +271,14 @@ private:
 		return addList.split.to!(int[]);
 	} // arrayCatNumbers
 public:
+	void setup(TaskMan taskMan) {
+		_dateTime = cast(DateTime)Clock.currTime();
+
+		_taskMan = taskMan;
+		_taskMan.loadDoneTasks("tasklog.bin");
+	}
+
+
 	unittest {
 		import std.range;
 		writeln("-".replicate(10));
@@ -405,11 +412,69 @@ public:
 		return (_segments = result);
 	} // function separate files ?
 
+	auto processInput(string input) {
+	//#Maybe add task entries here for list or 1 id
+		//writeln("TimeLog - Main menu (h for help) * * *"); // main prompt display
+		//input = id.to!string~" "~strip(readln); // get input prepare it and store it in the input variable string
+		//#here for input
+		//write("D>"); input = readln().strip(); // get input prepare it and store it in the input variable string
+		//input = ter.getline("D>");
+		//writeln;
+		//writeln("input: (", input, ')');
+		std.file.append("errorlog.txt", input ~ "\n");
+		//#commands in a row
+		//_autoInput.length = 0;
+
+		_selectNumbers.length = 0;
+		// if the input starts as a digit
+		if (input.length > 0 && input[0].isDigit) { //#only catergory numbers
+			//mixin(trace("/* before */ _adds")); // []
+			_adds = arrayCatNumbers(input);
+			//mixin(trace("/* after arrayCatNumbers(input); */ _adds")); // [1]
+			foreach(add; _adds) {
+				_taskMan ~= new Task(
+					_dateTime,
+					add,
+					_taskMan.getPossibleTask(cast(uint)add).taskString // get string using id
+				);
+				_taskMan.setTaskIndex(cast(immutable int)_taskMan.numberOfTasks - 1);
+				_selectNumbers ~= cast(int)_taskMan.numberOfTasks - 1;
+			}
+		}
+
+		string result = "\n";
+		//mixin(trace("_selectNumbers.length"));
+		foreach(select; _selectNumbers) {
+			//mixin(trace("select"));
+			_taskMan.setTaskIndex(cast(immutable int)select);
+
+			immutable commands = cast(immutable)separateCommands(cast(immutable)input);
+
+			foreach(seg; separateCommands(input)) { // loop task ---
+				_command = getType(seg);
+				_parameterString = getString(_command, seg);
+				if (_command == "st" || _command == "et" || _command == "sd" || _command == "l")
+					_parameterNumbers = _parameterString.split.to!(int[]);
+				
+				result ~= doCommand();
+			}
+		}
+
+		if (result == "") {
+			std.file.append("inputlog.txt", input ~ "\n");
+
+			result = setUp(input);
+		}
+
+		return result;
+	} // processInput
+
+version(none) {
 	/**
 		Title: Has main loop
 		set up task man as the task man instance from method parameter
 	*/
-	void run(TaskMan taskMan) {
+	void run(ref TaskMan taskMan) {
 		//_dateTime = _time = cast(DateTime)Clock.currTime();
 		_dateTime = cast(DateTime)Clock.currTime();
 
@@ -440,7 +505,14 @@ public:
 		} else {
 			//import terminal;
 			
-			auto ter = Terminal(ConsoleOutputType.linear);
+			//auto ter = Terminal(ConsoleOutputType.linear);
+			string ter;
+			/+
+			if (_gui.waiting) {
+				ter = _gui.getInput;
+				_gui.waiting = false;
+			}
+			+/
 		}
 		bool done = false; // loop exit door shut, set to true to open it
 		while (! done) { // while door shut LOOP #################################################################
@@ -450,52 +522,6 @@ public:
 			final switch(_inputType) {
 				//Type in here, if you've typed some thing, then separated each command into an array, turn on auto input, which will go through the comand list
 				case InputType.userInput:
-				//#Maybe add task entries here for list or 1 id
-					writeln("TimeLog - Main menu (h for help) * * *"); // main prompt display
-					//input = id.to!string~" "~strip(readln); // get input prepare it and store it in the input variable string
-					//#here for input
-					//write("D>"); input = readln().strip(); // get input prepare it and store it in the input variable string
-					input = ter.getline("D>");
-					writeln;
-					//writeln("input: (", input, ')');
-					std.file.append("errorlog.txt", input ~ "\n");
-					//#commands in a row
-					//_autoInput.length = 0;
-
-					_selectNumbers.length = 0;
-					// if the input starts as a digit
-					if (input.length > 0 && input[0].isDigit) { //#only catergory numbers
-						//mixin(trace("/* before */ _adds")); // []
-						_adds = arrayCatNumbers(input);
-						//mixin(trace("/* after arrayCatNumbers(input); */ _adds")); // [1]
-						foreach(add; _adds) {
-							_taskMan ~= new Task(
-								_dateTime,
-								add,
-								_taskMan.getPossibleTask(cast(uint)add).taskString // get string using id
-							);
-							_taskMan.setTaskIndex(cast(immutable int)_taskMan.numberOfTasks - 1);
-							_selectNumbers ~= cast(int)_taskMan.numberOfTasks - 1;
-						}
-					}
-
-					//mixin(trace("_selectNumbers.length"));
-					foreach(select; _selectNumbers) {
-						//mixin(trace("select"));
-						_taskMan.setTaskIndex(cast(immutable int)select);
-
-						immutable commands = cast(immutable)separateCommands(cast(immutable)input);
-
-						foreach(seg; separateCommands(input)) { // loop task ---
-							_command = getType(seg);
-							_parameterString = getString(_command, seg);
-							if (_command == "st" || _command == "et" || _command == "sd" || _command == "l")
-								_parameterNumbers = _parameterString.split.to!(int[]);
-							
-							doCommand();
-						}
-					}
-
 					/+
 					immutable commands = cast(immutable)separateCommands(cast(immutable)input);
 
@@ -554,9 +580,10 @@ public:
 
 		} // while(! done)
 	}
+} // version none
 
-	void setUp(ref string input, ref Control.InputType inputType) {
-		bool isNumbercs = _adds.length > 0; // is it bool isNumber = false; isNumbercs - isNumber(s)
+	string setUp(ref string input) {
+		//bool isNumbercs = _adds.length > 0; // is it bool isNumber = false; isNumbercs - isNumber(s)
 		
 		bool notDigit(char c) {
 			return ! std.ascii.isDigit(c);
@@ -615,9 +642,6 @@ public:
 			
 			immutable type = getType(input);
 			
-			if (inputType != InputType.autoInput)
-				doCommand();
-			
 			if (ifNotInListOfcommands(type, "sd st et l c")) // if v p etc then don't do more than one //#what?
 				break;
 		} // Foreach
@@ -626,8 +650,8 @@ public:
 		_command = getType(input);
 		_parameterString = getString(_command, input);
 		//mixin(traceLine("input _command _type _parameterString".split));
-		doCommand();
 
+		return doCommand();
 	} // setUp
 
 	/// Find the end of the type in input, looking for a number or a quote
@@ -734,13 +758,123 @@ public:
 		//	run(t);
 	}
 
+	auto processCommandsFromTextFile() {
+		string result;
+		/*
+		line = `1 2 3 c"one two three" st"4 5 6"` ->
+
+		seg[0] = `c"one two three"`
+		seg[1] = `st"4 5 6"`
+			*/
+		import std.ascii: isDigit;
+		string[] lines;
+		immutable textFile = _parameterString.setExtension(".txt");
+
+		//writeln("---\n" ~ readText(textFile) ~ "\n---");
+
+		if (! textFile.exists) {
+			result = "File did not found '" ~ textFile ~ "'";
+		} else {
+			_autoInput.length = 0;
+			foreach(char[] commandFrmFileLine; File(textFile, "r").byLine()) { // more of a proper test, can keep adding it self to the document
+				if (commandFrmFileLine.length > 0) {
+					if (commandFrmFileLine[0].isDigit)
+						lines ~= commandFrmFileLine.idup.strip ~ ' ';
+					else
+						lines[$-1] ~= commandFrmFileLine.idup.strip ~ ' ';
+				}
+				//foreach(i, seg; separateCommands(commandFrmFileLine.idup)) {
+				//	_autoInput ~= AutoInput(commandFrmFileLine.idup, seg, i == 0 ? true : false);
+				//}
+			} // thumbs up!
+			//writeln([lines]); //#put this in
+
+			int count;
+			foreach(line; lines) { // loop each line ---
+				//mixin(trace("count++"));
+
+				//#here
+				_adds = arrayCatNumbers(line); // _add = #(s) and remove
+				//mixin(trace("line"));
+
+				//mixin(trace("_adds"));
+				int countAdd;
+
+				foreach(add; _adds) { // loop numbers ---
+					//mixin(trace("countAdd++"));
+
+					/+
+					with(_taskMan.getTask(cast(int)_taskMan.doneTasks)) { // add eg equals 90 for jokes
+						mixin(traceLine("cast(int)_taskMan.doneTasks-1, add, taskString, timeLength, comment, dateTime, displayTimeFlag, endTime, displayEndTimeFlag".split(", ")));
+						_taskMan ~= new Task(add, taskString, timeLength, comment, dateTime, displayTimeFlag, endTime, displayEndTimeFlag); // add new task
+					}
+					+/
+
+					_taskMan ~= new Task(
+						_dateTime,
+						add,
+						//_taskMan.getTask(cast(immutable int)_taskMan.numberOfTasks - 1).taskString() //,
+						//""
+						_taskMan.getPossibleTask(cast(uint)add).taskString // get string using id
+					);
+					_taskMan.setTaskIndex(cast(immutable int)_taskMan.numberOfTasks - 1);
+
+					foreach(seg; separateCommands(line)) { // loop task ---
+						_command = getType(seg);
+						_parameterString = getString(_command, seg);
+						//mixin(trace("_parameterString"));
+						if (_command == "st" || _command == "et" || _command == "sd" || _command == "l")
+							_parameterNumbers = _parameterString.split.to!(int[]);
+
+						//categoryString(add);
+
+						if (_command != "fc" && _command != "fileComands")
+							result ~= doCommand() ~ "\n"; // uses _command
+						/+
+						with(_taskMan.getTask(add)) { // add eg equals 90 for jokes
+							mixin(traceLine("cast(int)_taskMan.doneTasks-1, add, taskString, timeLength, comment, dateTime, displayTimeFlag, endTime, displayEndTimeFlag".split(", ")));
+						}
+						+/
+
+						//_recNum = cast(int)_taskMan.doneTasks-1;
+
+						//mixin(traceLine("_command _parameterString".split));
+						//_recNum = cast(int)_taskMan.doneTasks-1;
+						//_autoInput ~= AutoInput(seg);
+						//mixin(trace("seg"));
+
+						//	this( int  id0, string taskString0, TimeLength length0, string comment0, DateTime dateTime0, bool displayTimeFlag0, DateTime endTime0, bool displayEndTimeFlag0 )
+					} // separateCommands(line)
+				} // _adds
+			} // lines
+//					version(none) {
+				_autoInputPos = 0; // set postion to start segment
+//						_inputType = InputType.autoInput;
+//						
+				_autoLines = lines;
+//					}
+		}
+
+		/*
+		import std.range;
+		writeln('-'.repeat.take(10));
+		foreach(line; lines)
+			writeln(line);
+		*/
+		_done = true;
+
+		return result;
+	} // processCommandsFromTextFile
+
 	/// do command eg. st"20 53 0"
-	void doCommand() {
+	string doCommand() {
+		string result;
+
 		//writeln("Command Count: ", _commandCount++);
 		//_taskMan.setTaskIndex(_recNum);
 		switch(_command) {
 			case "h", "help":
-				writeln("q/quit/exit - To quit" ~ "\n" ~
+				result = "q/quit/exit - To quit" ~ "\n" ~
 						"h/help - For this help" ~ "\n" ~
 						"v - List tasks to choose" ~ "\n" ~
 						"p - Print tasks done" ~ "\n" ~
@@ -774,110 +908,10 @@ public:
 						"cls - clear the screen and text tank" ~ "\n" ~
 						"vtt - view text tank" ~ "\n" ~
 						`stt"<file name>" - save tank text` ~ "\n" ~
-				        `sp"<phrase>" - search text`);
+				        `sp"<phrase>" - search text`;
 			break;
 			case "fileComands", "fc":
-				/*
-				line = `1 2 3 c"one two three" st"4 5 6"` ->
-
-				seg[0] = `c"one two three"`
-				seg[1] = `st"4 5 6"`
-				 */
-				import std.ascii: isDigit;
-				string[] lines;
-				immutable textFile = _parameterString.setExtension(".txt");
-
-				//writeln("---\n" ~ readText(textFile) ~ "\n---");
-
-				if (! textFile.exists) {
-					writeln("File did not load '", textFile, "'");
-				} else {
-					_autoInput.length = 0;
-					foreach(char[] commandFrmFileLine; File(textFile, "r").byLine()) { // more of a proper test, can keep adding it self to the document
-						if (commandFrmFileLine.length > 0) {
-							if (commandFrmFileLine[0].isDigit)
-								lines ~= commandFrmFileLine.idup.strip ~ ' ';
-							else
-								lines[$-1] ~= commandFrmFileLine.idup.strip ~ ' ';
-						}
-						//foreach(i, seg; separateCommands(commandFrmFileLine.idup)) {
-						//	_autoInput ~= AutoInput(commandFrmFileLine.idup, seg, i == 0 ? true : false);
-						//}
-					} // thumbs up!
-					//writeln([lines]); //#put this in
-
-					int count;
-					foreach(line; lines) { // loop each line ---
-						//mixin(trace("count++"));
-
-						//#here
-						_adds = arrayCatNumbers(line); // _add = #(s) and remove
-						//mixin(trace("line"));
-
-						//mixin(trace("_adds"));
-						int countAdd;
-
-						foreach(add; _adds) { // loop numbers ---
-							//mixin(trace("countAdd++"));
-
-							/+
-							with(_taskMan.getTask(cast(int)_taskMan.doneTasks)) { // add eg equals 90 for jokes
-								mixin(traceLine("cast(int)_taskMan.doneTasks-1, add, taskString, timeLength, comment, dateTime, displayTimeFlag, endTime, displayEndTimeFlag".split(", ")));
-								_taskMan ~= new Task(add, taskString, timeLength, comment, dateTime, displayTimeFlag, endTime, displayEndTimeFlag); // add new task
-							}
-							+/
-
-							_taskMan ~= new Task(
-								_dateTime,
-								add,
-								//_taskMan.getTask(cast(immutable int)_taskMan.numberOfTasks - 1).taskString() //,
-								//""
-								_taskMan.getPossibleTask(cast(uint)add).taskString // get string using id
-							);
-							_taskMan.setTaskIndex(cast(immutable int)_taskMan.numberOfTasks - 1);
-
-							foreach(seg; separateCommands(line)) { // loop task ---
-								_command = getType(seg);
-								_parameterString = getString(_command, seg);
-								//mixin(trace("_parameterString"));
-								if (_command == "st" || _command == "et" || _command == "sd" || _command == "l")
-									_parameterNumbers = _parameterString.split.to!(int[]);
-
-								//categoryString(add);
-
-								doCommand(); // uses _command
-								/+
-								with(_taskMan.getTask(add)) { // add eg equals 90 for jokes
-									mixin(traceLine("cast(int)_taskMan.doneTasks-1, add, taskString, timeLength, comment, dateTime, displayTimeFlag, endTime, displayEndTimeFlag".split(", ")));
-								}
-								+/
-
-								//_recNum = cast(int)_taskMan.doneTasks-1;
-
-								//mixin(traceLine("_command _parameterString".split));
-								//_recNum = cast(int)_taskMan.doneTasks-1;
-								//_autoInput ~= AutoInput(seg);
-								//mixin(trace("seg"));
-
-								//	this( int  id0, string taskString0, TimeLength length0, string comment0, DateTime dateTime0, bool displayTimeFlag0, DateTime endTime0, bool displayEndTimeFlag0 )
-							} // separateCommands(line)
-						} // _adds
-					} // lines
-//					version(none) {
-						_autoInputPos = 0; // set postion to start segment
-//						_inputType = InputType.autoInput;
-//						
-						_autoLines = lines;
-//					}
-				}
-
-				/*
-				import std.range;
-				writeln('-'.repeat.take(10));
-				foreach(line; lines)
-					writeln(line);
-				*/
-				_done = true;
+				result = processCommandsFromTextFile();
 			break;
 			case "printDay", "pd":
 				if (_parameterNumbers.length == 3) {
@@ -1153,7 +1187,7 @@ public:
 			break;
 			case "q", "quit", "exit":
 				_done = true;
-				return; //#comes up with a warning about break being not reachable
+				return ""; //#comes up with a warning about break being not reachable
 			//break;
 			case "sv":
 				if ( _parameterString != "" ) // eg. sv"back"
@@ -1220,6 +1254,8 @@ public:
 			break;
 		} // switch
 		_command = ""; //#a hack - calls doCommand twice! but I can't see 2 calls
+
+		return result;
 	} // do command
 
 	/*

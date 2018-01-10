@@ -63,7 +63,7 @@ mixin APP_ENTRY_POINT;
 
 /// entry point for dlangui based application
 extern (C) int UIAppMain(string[] args) {
-	TaskMan taskMan; // handles the task objects
+	TaskMan taskMan = new TaskMan; // handles the task objects
 	
 	processCategory(taskMan);
 	tasksHidden(taskMan);

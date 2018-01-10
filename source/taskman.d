@@ -15,13 +15,14 @@ private {
 	import std.datetime;
 	import std.file: FileException;
 	import std.algorithm;
+	import std.conv: text;
 
 //	import terminal;
 	import jtask.taskmanbb, jtask.basebb;
 	import base, task;
 }
 
-struct TaskMan {
+class TaskMan {
 private:
 	Task[] _possibleTasks, // possible tasks are the tasks you choose from
 		_doneTasks; // done tasks are the tasks that you have done
@@ -46,15 +47,21 @@ public:
 		string cformat() { return _cformat; }
 	}
 
-	void listFoundText(in string phrase) {
+	auto listFoundText(in string phrase) {
+		string result;
+
 		int numberOfItem = 1; //#redundant, why not use cast(int)(i + 1)
 		
 		foreach ( i, task; _doneTasks ) {
 			if ( std.string.indexOf(task.comment(), phrase) != -1 ) {
-				_textTank ~= task.viewInfo( numberOfItem, cast(int)i, Collum.straitDown, TaskType.done, _cformat );
+				immutable tex = task.viewInfo( numberOfItem, cast(int)i, Collum.straitDown, TaskType.done, _cformat );
+				_textTank ~= tex;
+				result ~= tex;
 				numberOfItem++;
 			}
 		}
+
+		return result;
 	}
 
 	string printDay(int fd, int fm, int fy, int tod = 0, int tom = 0, int toy = 0) {
@@ -144,13 +151,25 @@ public:
 	}
 	
 	/// set the time of day
-	void setTime(int hour, int minute,int second) {
+	auto setTime(int hour, int minute,int second) {
 		_doneTasks[ _selectedTaskIndex ].setTime(hour, minute, second);
+
+		return format("Set time/start time H:M:S %s:%s:%s", hour, minute, second);
 	}
 
 	/// set the end time of day
-	void setEndTime(int hour, int minute,int second) {
+	auto setEndTime(int hour, int minute, int second) {
 		_doneTasks[ _selectedTaskIndex ].setEndTime(hour, minute, second);
+
+		return format("End time H:M:S %s:%s:%s", hour, minute, second);
+	}
+
+	/// set time length for task
+	auto setTimeLength( TimeLength tl )
+	{
+		_doneTasks[ _selectedTaskIndex ].setTimeLength( tl );
+
+		return text(tl);
 	}
 
 	bool noPossibleTasks()
@@ -199,7 +218,7 @@ public:
 
 	Task getTask(in int index)
 	{
-		if ( index < 0 || index > _doneTasks.length)
+		if ( index < 0 || index >= _doneTasks.length)
 		{
 			writeln("Task getTask" ~ "(immutable int index)" ~ " - out of bounds (", index, ")");
 			return null;
@@ -217,16 +236,12 @@ public:
 		}
 		_selectedTaskIndex = index;
 	}
-	
-	/// set time length for task
-	void setTimeLength( TimeLength tl )
-	{
-		_doneTasks[ _selectedTaskIndex ].setTimeLength( tl );
-	}
-	
+		
 	/// set date
-	void setDate(int date, int month, int year) {
+	auto setDate(int date, int month, int year) {
 		_doneTasks[_selectedTaskIndex].setDate(date, month, year);
+
+		return format("\nid: %s, d:m:y %s:%s:%s", _selectedTaskIndex, date, month, year);
 	}
 	
 	/// Add some thing said about the log entry (eg. comment)
@@ -278,7 +293,9 @@ public:
 	}
 	
 	/// View all possible tasks
-	void view( TaskType taskType, int format = 0 ) {
+	auto view( TaskType taskType, int format = 0 ) {
+		string result;
+
 		auto tasks = [_possibleTasks, _doneTasks, _doneTasks][taskType];
 		final switch ( taskType )
 		{
@@ -306,28 +323,27 @@ public:
 					case 0:
 						bool isDevOfTwo() { return displayTasks.length % 2; }
 						foreach ( i; 0 .. displayTasks.length / 2 + ( isDevOfTwo ? 1 : 0 ) ) {
-							displayTasks[ i ].viewInfo(
+							result ~= displayTasks[ i ].viewInfo(
 								0,
 								index[i],
 								Collum.left,
 								TaskType.possibles
 							); // left
-							if ( displayTasks.length / 2 + i < tasks.length )
-								displayTasks[ cast(uint)displayTasks.length / 2 + i ].viewInfo(
+							if ( displayTasks.length / 2 + i < tasks.length ) {
+								result ~= displayTasks[ cast(uint)displayTasks.length / 2 + i ].viewInfo(
 									0, cast(int)displayTasks.length / 2 + cast(int)i, Collum.right, TaskType.possibles ); // right
-							else
+							} else
 								writeln();
 						}
 					break;
 					case 1:
 						foreach(i; 0 .. displayTasks.length) {
-							displayTasks[i].viewInfo(
+							result ~= displayTasks[i].viewInfo(
 								0,
 								index[i],
 								Collum.left, // ?
 								TaskType.possibles
-							);
-							writeln();
+							) ~ "\n";
 						}
 					break;
 				}
@@ -336,15 +352,21 @@ public:
 				int offSet = tasks.length > 30 ? cast(int)tasks.length - 30 : 0;
 				foreach ( i, task; tasks[ offSet .. $ ] )
 				{
-					_textTank ~= task.viewInfo( cast(int)i, offSet + cast(int)i, Collum.straitDown, TaskType.done, _cformat );
+					immutable tex = task.viewInfo( cast(int)i, offSet + cast(int)i, Collum.straitDown, TaskType.done, _cformat );
+					_textTank ~= tex;
+					result ~= tex;			
 				}
 			break;
 			case TaskType.allDone:
 				foreach(i, task; tasks) {
-					_textTank ~= task.viewInfo( cast(int)i, cast(int)i, Collum.straitDown, TaskType.done, _cformat );
+					immutable tex = task.viewInfo( cast(int)i, cast(int)i, Collum.straitDown, TaskType.done, _cformat );
+					_textTank ~= tex;
+					result ~= tex;
 				}
 			break;
 		}
+
+		return result;
 	}
 	
 	/// I/O output
@@ -361,34 +383,44 @@ public:
 	}
 	
 	/// remove from the done tasks list
-	void removeAt(int index)
+	auto removeAt(int index)
 	{
+		string result = "\n";
+
 		if ( index < _doneTasks.length && index >= 0 )
 		{
-			write("Deleting (enter 'ld' to revert to last save) - "); _doneTasks[index].viewInfo(0, index, TaskType.done);
+			result ~= "Deleting (enter 'ld' to revert to last save) - " ~ _doneTasks[index].viewInfo(0, index, TaskType.done);
 			_doneTasks = _doneTasks[0 .. index] ~ _doneTasks[index + 1 .. $];
 		}
 		else
 		{
-			writeln("That, my friend, is an invalid number.");
+			result ~= "That, my friend, is an invalid number.";
 		}
+
+		return result;
 	}
 	
 //		void viewInfo( int indexNumber, int collum, TaskType taskType = TaskType.possibles )
 
 	/// List just by the selected type (eg. 'got up', but its number)
-	void listByType( int typeId, string cformat )
+	auto listByType( int typeId, string cformat )
 	{
+		string result = "\n";
+
 		int numberOfItem = 1;
 
 		foreach ( i, task; _doneTasks )
 		{
 			if ( task.id == typeId )
 			{
-				_textTank ~= task.viewInfo( numberOfItem, cast(int)i, Collum.straitDown, TaskType.done, _cformat );
+				immutable tex = task.viewInfo( numberOfItem, cast(int)i, Collum.straitDown, TaskType.done, _cformat );
+				_textTank ~= tex;
+				result ~= tex;
 				numberOfItem++;
 			}
 		}
+
+		return result;
 	}
 
 	void clearDoneTasks()

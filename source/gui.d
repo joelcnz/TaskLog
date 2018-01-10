@@ -1,3 +1,4 @@
+import std.conv: text, to;
 
 import dlangui;
 
@@ -9,51 +10,145 @@ struct Gui {
 private:
 	Window _window;
 	EditBox _editBoxMain;
+	TextWidget _textWidgetCategory;
+	EditLine _editLineId,
+		_editLineComment,
+		_editLineDate,
+		_editLineTime,
+		_editLineEndTime,
+		_editLineDuration;
+	CheckBox _checkBoxTime,
+			_checkBoxEndTime;
+
     TaskMan _taskMan;
     Control _control;
 
-    //bool _waiting;
     string _input;
 public:
     auto getInput() {
         return _input;
     }
 
-    //void waiting(bool waiting0) { _waiting = waiting0; }
-    //auto waiting() { return _waiting; }
-
 	int setup(ref TaskMan taskMan) {
         _taskMan = taskMan;
         _control.setup(_taskMan);
+
 		_window = Platform.instance.createWindow(
 			"GUI TimeLog Program", null, WindowFlag.Resizable, 1280, 800);
 
 		// Crease widget to show in window
 		_window.mainWidget = parseML(q{
-			VerticalLayout {
-				margins: 3
-				padding: 3
-				EditBox {
-					id: editBoxMain
-					minWidth: 640; minHeight: 700; maxHeight: 640;
-				}
+			HorizontalLayout {
+				VerticalLayout {
+					margins: 3
+					padding: 3
 
-				Button { id: buttonActivate; maxWidth: 100; text: "- Activate Last Line -" }
+					EditBox {
+						id: editBoxMain
+						minWidth: 1100; minHeight: 700; maxHeight: 640;
+					}
+
+					Button { id: buttonActivate; maxWidth: 100; text: "- Activate Last Line -" }
+
+					HorizontalLayout {
+						TextWidget { text: "Category:" }
+						TextWidget {
+							id: textWidgetCategory
+							text: "(none set)"
+						}
+					}
+
+					HorizontalLayout {
+						TextWidget { text: "Comment:" }
+						EditLine {
+							id: editLineComment
+							minWidth: 900; maxWidth: 900
+							text: ""
+						}
+					}
+				}
+				VerticalLayout {
+					HorizontalLayout {
+						TextWidget { text: "Ref:" }
+						EditLine { id: editLineId; text: "0"; minWidth: 100; maxWidth: 100 }
+					}
+
+					Button { id: buttonGet; maxWidth: 100; text: "Get" }
+
+					TextWidget { text: "Date:" }
+					EditLine { id: editLineDate; text: "1 1 2018"; minWidth: 100; maxWidth: 100 }
+					TextWidget { text: "Time:" }
+					HorizontalLayout { EditLine { id: editLineTime; text: "0 0 0"; minWidth: 100; maxWidth: 100 } CheckBox { id: checkBoxTime; } }
+					TextWidget { text: "End Time:" }
+					HorizontalLayout { EditLine { id: editLineEndTime; text: "0 0 0"; minWidth: 100; maxWidth: 100 } CheckBox { id: checkBoxEndTime; } }
+					TextWidget { text: "Duration:" }
+					EditLine { id: editLineDuration; text: "0 0 0"; minWidth: 100; maxWidth: 100 }
+				}
 			}
 		});
 
 		_editBoxMain = _window.mainWidget.childById!EditBox("editBoxMain");
+		_editLineId = _window.mainWidget.childById!EditLine("editLineId");
+		_textWidgetCategory = _window.mainWidget.childById!TextWidget("textWidgetCategory");
+		_editLineDate = _window.mainWidget.childById!EditLine("editLineDate");
+		_editLineTime = _window.mainWidget.childById!EditLine("editLineTime");
+		_editLineEndTime = _window.mainWidget.childById!EditLine("editLineEndTime");
+		_editLineDuration = _window.mainWidget.childById!EditLine("editLineDuration");
+		_editLineComment = _window.mainWidget.childById!EditLine("editLineComment");
+		_checkBoxTime = _window.mainWidget.childById!CheckBox("checkBoxTime");
+		_checkBoxEndTime = _window.mainWidget.childById!CheckBox("checkBoxEndTime");
+		
 		_window.mainWidget.childById!Button("buttonActivate").click = delegate(Widget w) {
-            import std.string: lastIndexOf;
+			import std.string: lastIndexOf;
 			import std.conv: to;
 
             auto i = _editBoxMain.text.to!string.lastIndexOf("\n") + 1;
             _input = _editBoxMain.text[i .. $].to!string;
             (`"` ~ _input ~ `"`).gh;
-            //waiting = true;            _input.gh;
             auto output = _control.processInput(_input);
             if (output.length > 0)
                 _editBoxMain.text = _editBoxMain.text ~ (output ~ "\n").to!dstring;
+
+            return true;
+		};
+		_window.mainWidget.childById!Button("buttonGet").click = delegate(Widget w) {
+
+            int id;
+			try {
+				id = _editLineId.text.to!int;
+			} catch(Exception e) {
+				return false;
+			}
+
+			auto task = _taskMan.getTask(id); 
+			if (task is null) {
+				_editBoxMain.text = _editBoxMain.text ~ "\nTask out of range!";
+
+				return false;
+			} else {
+				_textWidgetCategory.text = task.id().to!dstring ~ " " ~ task.taskString.to!dstring;
+
+				_editLineDate.text = text(task.dateTime.day, " ", cast(int)task.dateTime.month, " ", task.dateTime.year).to!dstring;
+
+				_checkBoxTime.checked = task.displayTimeFlag;
+				if (_checkBoxTime.checked)
+					_editLineTime.text = text(task.dateTime.hour, " ", task.dateTime.minute, " ", task.dateTime.second).to!dstring;
+				else
+					_editLineTime.text = ""d;
+
+				_checkBoxEndTime.checked = task.displayEndTimeFlag;
+				if (_checkBoxEndTime.checked)
+					_editLineEndTime.text = text(task.endTime.hour, " ", task.endTime.minute, " ", task.endTime.second).to!dstring;
+				else
+					_editLineEndTime.text = ""d;
+				
+				if (task.timeLength.hours ==0 && task.timeLength.minutes == 0 && task.timeLength.seconds == 0)
+					_editLineDuration.text = ""d;
+				else
+					_editLineDuration.text = text(task.timeLength.hours, " ", task.timeLength.minutes, " ", task.timeLength.seconds).to!dstring;
+
+				_editLineComment.text = task.comment().to!dstring;
+			}
 
             return true;
 		};

@@ -1,3 +1,6 @@
+//#I don't know what's supposed to happen here
+//#E.g. if you miss c for comment ("got up") it just ignores it, it should abort
+
 //#more work, maybe put view instead
 //#a hack - calls doCommand twice! but I can't see 2 calls
 //#not work eg Error: found '10' when expecting ',' etc
@@ -271,6 +274,8 @@ private:
 		return addList.split.to!(int[]);
 	} // arrayCatNumbers
 public:
+	@property ref TaskMan taskMan() { return _taskMan; }
+
 	void setup(TaskMan taskMan) {
 		_dateTime = cast(DateTime)Clock.currTime();
 
@@ -460,6 +465,7 @@ public:
 			}
 		}
 
+		//#I don't know what's supposed to happen here
 		enum stillJustNewLine = "\n";
 		if (result == stillJustNewLine) {
 			std.file.append("inputlog.txt", input ~ "\n");
@@ -646,6 +652,7 @@ public:
 		//	run(t);
 	}
 
+	//#E.g. if you miss c for comment ("got up") it just ignores it, it should abort
 	auto processCommandsFromTextFile() {
 		string result;
 		/*
@@ -683,7 +690,7 @@ public:
 			//writeln([lines]); //#put this in
 
 			int count;
-			foreach(line; lines) { // loop each line ---
+			abort0: foreach(line; lines) { // loop each line ---
 				//mixin(trace("count++"));
 
 				//#here
@@ -722,6 +729,12 @@ public:
 						//if (_command == "st" || _command == "et" || _command == "sd" || _command == "l")
 						if (_command.startsWith("st", "et", "sd", "l"))
 							_parameterNumbers = _parameterString.split.to!(int[]);
+						else if (! _command.startsWith("c")) {
+							result ~= line ~ "\n";
+							result ~= "[" ~ _command ~ "] - Error! Aborting.. Check the code..";
+
+							break abort0;
+						}
 
 						//categoryString(add);
 
@@ -730,10 +743,10 @@ public:
 							import std.conv: text;
 							import std.string: strip;
 
-							if (command.strip.length > 0)
-								result ~= command ~ "\n"; // uses _command
-							else
-								result ~= text("Id: ", cast(immutable int)_taskMan.numberOfTasks - 1, ", Add: ", add, ", Seg: ", seg, ", String, (", _parameterString, "), Numbers: ", _parameterNumbers, "\n");
+							//if (command.strip.length > 0)
+							//	result ~= command ~ "\n"; // uses _command
+							//else
+							result ~= text("Command: [", command, "], Id: ", cast(immutable int)_taskMan.numberOfTasks - 1, ", Add: ", add, ", Seg: [", seg, "], String, (", _parameterString, "), Numbers: ", _parameterNumbers, "\n");
 						}
 						/+
 						with(_taskMan.getTask(add)) { // add eg equals 90 for jokes
@@ -773,13 +786,13 @@ public:
 
 	/// do command eg. st"20 53 0"
 	string doCommand() {
-		string result;
+		string result = _command;
 
 		//writeln("Command Count: ", _commandCount++);
 		//_taskMan.setTaskIndex(_recNum);
 		switch(_command) {
 			case "h", "help":
-				result = "q/quit/exit - To quit" ~ "\n" ~
+				result ~= "\nq/quit/exit - To quit" ~ "\n" ~
 						"h/help - For this help" ~ "\n" ~
 						"v - List tasks to choose" ~ "\n" ~
 						"p - Print tasks done" ~ "\n" ~
@@ -798,7 +811,7 @@ public:
 				        `printDay/pd"# # # (# # #)" - view a day or range` ~ "\n" ~
 						`d"<file name>" - Dump to text file` ~ "\n" ~
 						"r# - remove task with by number" ~ "\n" ~
-						"sort - sort list by time. - underconstruction" ~ "\n" ~
+						"sort - sort list by time" ~ "\n" ~
 						`addCategory/ac"<name>"` ~ "\n" ~
 						"hideCategory/hc#" ~ "\n" ~
 						"revealCategory/rc#" ~ "\n" ~
@@ -816,7 +829,7 @@ public:
 				        `sp"<phrase>" - search text`;
 			break;
 			case "fileComands", "fc":
-				result = processCommandsFromTextFile();
+				result ~= "\n" ~ processCommandsFromTextFile();
 			break;
 			case "printDay", "pd":
 				if (_parameterNumbers.length == 3) {
@@ -825,7 +838,7 @@ public:
 						result = _taskMan.printDay(_parameterNumbers[0], _parameterNumbers[1], _parameterNumbers[2],
 										  _parameterNumbers[3], _parameterNumbers[4], _parameterNumbers[5]);
 				} else {
-					result = "Error with printing a day or range of days";
+					result ~= "Error with printing a day or range of days";
 				}
 				break;
 			//case "stswitch", "stw": 
@@ -841,10 +854,11 @@ public:
 						//                , _parameterNumbers[0], _parameterNumbers[1], _parameterNumbers[2]);
 					}
 					try {
-						_taskMan.setTime(_parameterNumbers[0], _parameterNumbers[1], _parameterNumbers[2]);
+						result ~= _taskMan.setTime(_parameterNumbers[0], _parameterNumbers[1], _parameterNumbers[2]);
+						//result = 
 					} catch( Exception e ) {
 						//writecln( Color.red, "Invalid time, try once more." );
-						writeln( "Invalid time, try once more." );
+						result ~= "Invalid start time, try once more.";
 					}
 				}
 				break;
@@ -858,21 +872,21 @@ public:
 						//                    , _parameterNumbers[0], _parameterNumbers[1], _parameterNumbers[2]);
 					}
 					try {
-						_taskMan.setEndTime(_parameterNumbers[0], _parameterNumbers[1], _parameterNumbers[2]);
+						result ~= _taskMan.setEndTime(_parameterNumbers[0], _parameterNumbers[1], _parameterNumbers[2]);
 					} catch( Exception e ) {
 						//writecln( Color.red, "Invalid time, try once more." );
-						writeln( "Invalid end time, try once more." );
+						result ~= "Invalid end time, try once more.";
 					}
 				}
 				break;
 				case "l":
 					if ( _parameterNumbers.length == 3 ) {
-						_taskMan.setTimeLength(TimeLength(_parameterNumbers[0], _parameterNumbers[1], _parameterNumbers[2]));
+						result ~= _taskMan.setTimeLength(TimeLength(_parameterNumbers[0], _parameterNumbers[1], _parameterNumbers[2]));
 					//writeln("length of time: ", [_parameterNumbers[0], _parameterNumbers[1], _parameterNumbers[2]]);
 					}
 					else {
 						//writecln( Color.red, "Wrong number of operants(sp), try once more." );
-						writeln( "Wrong number of operants(sp) for length of time, try once more." );
+						result ~= "Wrong number of operants(sp) for length of time, try once more.";
 					}
 				break;
 				//#can terminate, must fix!
@@ -883,14 +897,16 @@ public:
 					if (! (_parameterNumbers[0] > 0 &&
 						_parameterNumbers[0] <= (DateTime(Date(_parameterNumbers[2], _parameterNumbers[1], 1), TimeOfDay(0, 0, 0)).daysInMonth)
 					&& _parameterNumbers[1] >= 1 && _parameterNumbers[1] <= 12)) {
-						writeln("Error! Date not set with date time");
+						result ~= "Error! Date not set with date time";
 						break;
 					}
 					
 					//#was bug here, still a bug on Lukes version
 					scope(success) {
-						writefln( "Date set: %s.%02s.%s",
-						         _parameterNumbers[0], _parameterNumbers[1], _parameterNumbers[2]); // date, month, year
+						immutable tex = format("Date set: %s.%02s.%s",
+						         _parameterNumbers[0], _parameterNumbers[1], _parameterNumbers[2]); // date, month, year;
+						writefln(tex);
+						result ~= tex;
 						_dateTime = DateTime(_parameterNumbers[2], _parameterNumbers[1], _parameterNumbers[0]
 						, _dateTime.hour, _dateTime.minute, _dateTime.second);
 					}
@@ -898,12 +914,12 @@ public:
 						_taskMan.setDate(_parameterNumbers[0], _parameterNumbers[1], _parameterNumbers[2]);
 					} catch(Error e) {
 						//writecln( Color.red, "Invalid date, try once more." );
-						writeln( "Invalid date, try once more." );
+						result ~= "Invalid date, try once more.";
 					}
 				}
 				else {
 					//writecln( Color.red, "Wrong number of arguments (just day, month, and year.)" );
-					writeln( "Wrong number of arguments (just day, month, and year.) - date" );
+					result ~= "Wrong number of arguments (just day, month, and year.) - date";
 				}
 				break;
 			case "c":
@@ -913,10 +929,10 @@ public:
 				//#new
 			case "sp":
 				if ( _parameterString != "" ) {
-					_taskMan.listFoundText(_parameterString);
+					result ~= _taskMan.listFoundText(_parameterString);
 					_command = "";
 				} else {
-					writeln("This is not possible.");
+					result ~= "This is not possible.";
 				}
 				break;
 			case "stt":
@@ -928,17 +944,14 @@ public:
 			break;
 			case "cls":
 				_taskMan.textTank = "";
-				version(Windows)
-					wait(spawnShell("cls"));
-				else
-					wait(spawnShell("clear"));
+				result ~= "Text tank clear";
 			break;
 			case "vtt":
-				writeln(_taskMan.textTank);
+				result ~= _taskMan.textTank;
 			break;
 			case "showFormatTags", "sft":
 				//#need st and et
-				writeln("Format tags:\n" ~
+				result ~= "\nFormat tags:\n" ~
 				"* - ?\n" ~
 				"%nl - new line\n" ~
 				"%cn - category number\n" ~
@@ -948,7 +961,7 @@ public:
 				"%co - comment\n" ~
 				"%in - item number\n" ~
 				"*%st - start time\n" ~
-				"*%et - end time");
+				"*%et - end time";
 			break;
 			case "customFormatList","cfl":
 				if ( _parameterString != "" ) {
@@ -963,7 +976,7 @@ public:
 				_taskMan.convertToCommands(fileName.setExtension(".txt"));
 			break;
 			case "listCatogories", "lc":
-				_taskMan.view(TaskType.possibles, 1);
+				result ~= _taskMan.view(TaskType.possibles, 1);
 			break;
 			case "calculate", "ct":
 				scope(failure)
@@ -1036,7 +1049,7 @@ public:
 			case "lt":
 				if ( _parameterNumbers.length == 1 )
 				{
-					_taskMan.listByType( _parameterNumbers[0], _taskMan.cformat );
+					result ~= _taskMan.listByType( _parameterNumbers[0], _taskMan.cformat );
 				}
 			break;
 			// Remove task
@@ -1082,13 +1095,13 @@ public:
 				}
 			break;
 			case "v":
-				_taskMan.view(TaskType.possibles);
+				result ~= "\n" ~ _taskMan.view(TaskType.possibles);
 				break;
 			case "p":
-				_taskMan.view( TaskType.done );
+				result ~= "\n" ~ _taskMan.view( TaskType.done );
 				break;
 			case "pall":
-				_taskMan.view( TaskType.allDone );
+				result ~= "\n" ~ _taskMan.view( TaskType.allDone );
 			break;
 			case "q", "quit", "exit":
 				_done = true;

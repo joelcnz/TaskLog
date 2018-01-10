@@ -187,6 +187,7 @@ public:
 				writef(["%3s - %-33s%s", "%3s - %s%s"][collum], // id, possible task string
 							id, taskString,
 							collum == Collum.right ? "\n" : "" );
+				result ~= format(["%3s - %-33s%s", "%3s - %s%s"][collum], id, taskString, collum == Collum.right ? "\n" : "");
 			break;
 //			default:
 //				assert(false, "Not done or possibles");

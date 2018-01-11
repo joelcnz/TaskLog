@@ -114,6 +114,53 @@ public:
 		_checkBoxEndTime = _window.mainWidget.childById!CheckBox("checkBoxEndTime");
 		_checkBoxAddCat = _window.mainWidget.childById!CheckBox("checkBoxAddCat");
 		
+<<<<<<< HEAD
+		_window.mainWidget.childById!Button("buttonTest").click = delegate(Widget w) {
+			EditLine _editLineSpot;
+			
+			Window _spotWin;
+			
+			_spotWin = Platform.instance.createWindow(
+				"Command", null, WindowFlag.Resizable, 800, 50);
+
+			_spotWin.mainWidget = parseML(q{
+				HorizontalLayout {
+					backgroundColor: "#C0E0E070" // semitransparent yellow background
+					HorizontalLayout {
+						TextWidget {
+							text: "Enter command:"
+						}
+						EditLine {
+							id: editLineSpot
+							minWidth: 500
+						}
+						Button {
+							id: buttonAction
+							text: "Action"
+						}
+					}
+				}
+			});
+
+			_editLineSpot = _spotWin.mainWidget.childById!EditLine("editLineSpot");
+
+			_spotWin.mainWidget.childById!Button("buttonAction").click = delegate(Widget w) {
+				auto output = _control.processInput(_editLineSpot.text.to!string);
+
+				if (output.length > 0) {
+					_editBoxMain.text = _editBoxMain.text ~ (output ~ "\n").to!dstring;
+=======
+		import std.datetime: DateTime, Clock;
+>>>>>>> parent of 489dc14... Failed proper dialog box
+
+					return true;
+				}
+
+				return false;
+			};
+
+<<<<<<< HEAD
+=======
 		_window.mainWidget.childById!Button("buttonTest").click = delegate(Widget w) {
 			EditLine _editLineSpot;
 			
@@ -155,6 +202,7 @@ public:
 				return false;
 			};
 
+>>>>>>> parent of 489dc14... Failed proper dialog box
 			_spotWin.show();
 
 			return true;

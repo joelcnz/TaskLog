@@ -8,7 +8,8 @@ import control, taskman;
 
 struct Gui {
 private:
-	Window _window;
+	Window _window,
+		_windowSpot;
 	EditBox _editBoxMain;
 	TextWidget _textWidgetCategory;
 	EditLine _editLineId,
@@ -21,6 +22,9 @@ private:
 	CheckBox _checkBoxTime,
 			_checkBoxEndTime,
 			_checkBoxAddCat;
+
+	Widget _widgetSpot;
+	EditLine _editLineSpot;
 
     TaskMan _taskMan;
     Control _control;
@@ -37,6 +41,9 @@ public:
 
 		_window = Platform.instance.createWindow(
 			"Time Log", null, WindowFlag.Resizable, 1280, 800);
+
+		_windowSpot = Platform.instance.createWindow(
+					"Spot Command", null, WindowFlag.Resizable, 800, 50);
 
 		// Crease widget to show in window
 		_window.mainWidget = parseML(q{
@@ -101,6 +108,25 @@ public:
 			}
 		});
 
+		_windowSpot._widgetSpot = parseML(q{
+			HorizontalLayout {
+				backgroundColor: "#C0E0E070" // semitransparent yellow background
+				HorizontalLayout {
+					TextWidget {
+						text: "Enter command:"
+					}
+					EditLine {
+						id: editLineSpot
+						minWidth: 500
+					}
+					Button {
+						id: buttonAction
+						text: "Action"
+					}
+				}
+			}
+		});
+
 		_editBoxMain = _window.mainWidget.childById!EditBox("editBoxMain");
 		_editLineId = _window.mainWidget.childById!EditLine("editLineId");
 		_editLineAddCat = _window.mainWidget.childById!EditLine("editLineAddCat");
@@ -114,6 +140,19 @@ public:
 		_checkBoxEndTime = _window.mainWidget.childById!CheckBox("checkBoxEndTime");
 		_checkBoxAddCat = _window.mainWidget.childById!CheckBox("checkBoxAddCat");
 		
+		_editLineSpot = _windowSpot._widgetSpot.childById!EditLine("editLineSpot");
+		_windowSpot._widgetSpot.childById!Button("buttonAction").click = delegate(Widget w) {
+			auto output = _control.processInput(_editLineSpot.text.to!string);
+
+			if (output.length > 0) {
+				_editBoxMain.text = _editBoxMain.text ~ (output ~ "\n").to!dstring;
+
+				return true;
+			}
+
+			return false;
+		};
+
 		import std.datetime: DateTime, Clock;
 
 		auto dt = cast(DateTime)Clock.currTime();
@@ -124,47 +163,7 @@ public:
 		_editLineEndTime.text = theTime;
 
 		_window.mainWidget.childById!Button("buttonTest").click = delegate(Widget w) {
-			EditLine _editLineSpot;
-			
-			Window _spotWin;
-			
-			_spotWin = Platform.instance.createWindow(
-				"Command", null, WindowFlag.Resizable, 800, 50);
-
-			_spotWin.mainWidget = parseML(q{
-				HorizontalLayout {
-					backgroundColor: "#C0E0E070" // semitransparent yellow background
-					HorizontalLayout {
-						TextWidget {
-							text: "Enter command:"
-						}
-						EditLine {
-							id: editLineSpot
-							minWidth: 500
-						}
-						Button {
-							id: buttonAction
-							text: "Action"
-						}
-					}
-				}
-			});
-
-			_editLineSpot = _spotWin.mainWidget.childById!EditLine("editLineSpot");
-
-			_spotWin.mainWidget.childById!Button("buttonAction").click = delegate(Widget w) {
-				auto output = _control.processInput(_editLineSpot.text.to!string);
-
-				if (output.length > 0) {
-					_editBoxMain.text = _editBoxMain.text ~ (output ~ "\n").to!dstring;
-
-					return true;
-				}
-
-				return false;
-			};
-
-			_spotWin.show();
+			_window._widgetSpot.show();
 
 			return true;
 		};

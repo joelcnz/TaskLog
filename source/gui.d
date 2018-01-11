@@ -50,17 +50,10 @@ public:
 
 						EditBox {
 							id: editBoxMain
-							minWidth: 1100; minHeight: 600; maxHeight: 600;
+							minWidth: 1100; minHeight: 700; maxHeight: 640;
 						}
 
 						Button { id: buttonActivate; maxWidth: 100; text: "- Activate Last Line -" }
-
-						HorizontalLayout {
-							TextWidget { text: "Add categories:" }
-							EditLine { id: editLineAddCat; text: ""; minWidth: 350; maxWidth: 350 } CheckBox { id: checkBoxAddCat; }
-							TextWidget { text: "Ref:" }
-							EditLine { id: editLineId; text: "0"; minWidth: 350; maxWidth: 350 }
-						}
 
 						HorizontalLayout {
 							TextWidget { text: "Category:" }
@@ -82,17 +75,24 @@ public:
 						}
 					}
 					VerticalLayout {
-						Button { id: buttonGet; minWidth: 100; maxWidth: 100; text: "Get" }
+						HorizontalLayout {
+							TextWidget { text: "Ref:" }
+							EditLine { id: editLineId; text: "0"; minWidth: 100; maxWidth: 100 }
+						}
+
+						Button { id: buttonGet; maxWidth: 100; text: "Get" }
+
+						TextWidget { text: "Add categories:" }
+						HorizontalLayout { EditLine { id: editLineAddCat; text: ""; minWidth: 100; maxWidth: 100 } CheckBox { id: checkBoxAddCat; } }
 
 						TextWidget { text: "Date:" }
-						EditLine { id: editLineDate; minWidth: 70; maxWidth: 70 }
+						EditLine { id: editLineDate; text: "1 1 2018"; minWidth: 100; maxWidth: 100 }
 						TextWidget { text: "Time:" }
-						HorizontalLayout { EditLine { id: editLineTime; text: "0 0 0"; minWidth: 100; maxWidth: 100 }CheckBox { id: checkBoxTime; } }
+						HorizontalLayout { EditLine { id: editLineTime; text: "0 0 0"; minWidth: 100; maxWidth: 100 } CheckBox { id: checkBoxTime; } }
 						TextWidget { text: "End Time:" }
-						HorizontalLayout { EditLine { id: editLineEndTime; text: "0 0 0"; minWidth: 100; maxWidth: 100 }
-						CheckBox { id: checkBoxEndTime; } }
+						HorizontalLayout { EditLine { id: editLineEndTime; text: "0 0 0"; minWidth: 100; maxWidth: 100 } CheckBox { id: checkBoxEndTime; } }
 						TextWidget { text: "Duration:" }
-						EditLine { id: editLineDuration; text: "0 0 0"; }
+						EditLine { id: editLineDuration; text: "0 0 0"; minWidth: 100; maxWidth: 100 }
 						
 						Button { id: buttonSet; maxWidth: 100; text: "Set" }
 
@@ -114,15 +114,6 @@ public:
 		_checkBoxEndTime = _window.mainWidget.childById!CheckBox("checkBoxEndTime");
 		_checkBoxAddCat = _window.mainWidget.childById!CheckBox("checkBoxAddCat");
 		
-		import std.datetime: DateTime, Clock;
-
-		auto dt = cast(DateTime)Clock.currTime();
-		_editLineDate.text = text(dt.day, " ", cast(int)dt.month, " ", dt.year).to!dstring;
-
-		immutable theTime = text(dt.hour, " ", dt.minute, " ", dt.second).to!dstring;
-		_editLineTime.text = theTime;
-		_editLineEndTime.text = theTime;
-
 		_window.mainWidget.childById!Button("buttonTest").click = delegate(Widget w) {
 			EditLine _editLineSpot;
 			
@@ -256,6 +247,13 @@ public:
 				}
 
 				_control.processInput(loadValues, selection);
+				/+
+				foreach(s; selection) {
+					_control.processInput("s" ~ s.to!string);
+					_control.processInput(loadValues, s);
+					_editBoxMain.text = _editBoxMain.text ~ text("s", s, "\n", loadValues, "\n").to!dstring;
+				}
+				+/
 			}
 
             return true;

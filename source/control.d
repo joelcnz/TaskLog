@@ -417,7 +417,7 @@ public:
 		return (_segments = result);
 	} // function separate files ?
 
-	auto processInput(string input) {
+	auto processInput(string input, int[] selection = []) {
 	//#Maybe add task entries here for list or 1 id
 		//writeln("TimeLog - Main menu (h for help) * * *"); // main prompt display
 		//input = id.to!string~" "~strip(readln); // get input prepare it and store it in the input variable string
@@ -430,21 +430,25 @@ public:
 		//#commands in a row
 		//_autoInput.length = 0;
 
-		_selectNumbers.length = 0;
-		// if the input starts as a digit
-		if (input.length > 0 && input[0].isDigit) { //#only catergory numbers
-			//mixin(trace("/* before */ _adds")); // []
-			_adds = arrayCatNumbers(input);
-			//mixin(trace("/* after arrayCatNumbers(input); */ _adds")); // [1]
-			foreach(add; _adds) {
-				_taskMan ~= new Task(
-					_dateTime,
-					add,
-					_taskMan.getPossibleTask(cast(uint)add).taskString // get string using id
-				);
-				_taskMan.setTaskIndex(cast(immutable int)_taskMan.numberOfTasks - 1);
-				_selectNumbers ~= cast(int)_taskMan.numberOfTasks - 1;
+		if (selection.length == 0) {
+			_selectNumbers.length = 0;
+			// if the input starts as a digit
+			if (input.length > 0 && input[0].isDigit) { //#only catergory numbers
+				//mixin(trace("/* before */ _adds")); // []
+				_adds = arrayCatNumbers(input);
+				//mixin(trace("/* after arrayCatNumbers(input); */ _adds")); // [1]
+				foreach(add; _adds) {
+					_taskMan ~= new Task(
+						_dateTime,
+						add,
+						_taskMan.getPossibleTask(cast(uint)add).taskString // get string using id
+					);
+					_taskMan.setTaskIndex(cast(immutable int)_taskMan.numberOfTasks - 1);
+					_selectNumbers ~= cast(int)_taskMan.numberOfTasks - 1;
+				}
 			}
+		} else {
+			_selectNumbers = selection;
 		}
 
 		string result = "\n";
@@ -458,8 +462,20 @@ public:
 			foreach(seg; separateCommands(input)) { // loop task ---
 				_command = getType(seg);
 				_parameterString = getString(_command, seg);
-				if (_command == "st" || _command == "et" || _command == "sd" || _command == "l")
-					_parameterNumbers = _parameterString.split.to!(int[]);
+				if (_command == "st" || _command == "et" || _command == "sd" || _command == "l") {
+					try {
+						_parameterNumbers = _parameterString.split.to!(int[]);
+					} catch(Exception e) {
+						import std.stdio: writeln;
+						import std.conv: text;
+
+						immutable error = text("Error with: [", _parameterString, "]");
+						error.writeln;
+						result ~= error ~ "\n";
+
+						return result;
+					}
+				}
 				
 				result ~= doCommand();
 			}

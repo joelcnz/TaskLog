@@ -12,13 +12,15 @@ private:
 	EditBox _editBoxMain;
 	TextWidget _textWidgetCategory;
 	EditLine _editLineId,
+		_editLineAddCat,
 		_editLineComment,
 		_editLineDate,
 		_editLineTime,
 		_editLineEndTime,
 		_editLineDuration;
 	CheckBox _checkBoxTime,
-			_checkBoxEndTime;
+			_checkBoxEndTime,
+			_checkBoxAddCat;
 
     TaskMan _taskMan;
     Control _control;
@@ -69,7 +71,7 @@ public:
 								text: ""
 							}
 
-							Button { id: buttonTest; text: "*Command"; }
+							Button { id: buttonTest; text: "Command"; }
 						}
 					}
 					VerticalLayout {
@@ -80,6 +82,9 @@ public:
 
 						Button { id: buttonGet; maxWidth: 100; text: "Get" }
 
+						TextWidget { text: "Add categories:" }
+						HorizontalLayout { EditLine { id: editLineAddCat; text: ""; minWidth: 100; maxWidth: 100 } CheckBox { id: checkBoxAddCat; } }
+
 						TextWidget { text: "Date:" }
 						EditLine { id: editLineDate; text: "1 1 2018"; minWidth: 100; maxWidth: 100 }
 						TextWidget { text: "Time:" }
@@ -89,7 +94,7 @@ public:
 						TextWidget { text: "Duration:" }
 						EditLine { id: editLineDuration; text: "0 0 0"; minWidth: 100; maxWidth: 100 }
 						
-						Button { id: buttonSet; maxWidth: 100; text: "*Set" }
+						Button { id: buttonSet; maxWidth: 100; text: "Set" }
 
 					}
 				}
@@ -98,6 +103,7 @@ public:
 
 		_editBoxMain = _window.mainWidget.childById!EditBox("editBoxMain");
 		_editLineId = _window.mainWidget.childById!EditLine("editLineId");
+		_editLineAddCat = _window.mainWidget.childById!EditLine("editLineAddCat");
 		_textWidgetCategory = _window.mainWidget.childById!TextWidget("textWidgetCategory");
 		_editLineDate = _window.mainWidget.childById!EditLine("editLineDate");
 		_editLineTime = _window.mainWidget.childById!EditLine("editLineTime");
@@ -106,6 +112,7 @@ public:
 		_editLineComment = _window.mainWidget.childById!EditLine("editLineComment");
 		_checkBoxTime = _window.mainWidget.childById!CheckBox("checkBoxTime");
 		_checkBoxEndTime = _window.mainWidget.childById!CheckBox("checkBoxEndTime");
+		_checkBoxAddCat = _window.mainWidget.childById!CheckBox("checkBoxAddCat");
 		
 		_window.mainWidget.childById!Button("buttonTest").click = delegate(Widget w) {
 			EditLine _editLineSpot;
@@ -208,50 +215,44 @@ public:
             return true;
 		};
 
-		/*
 		_window.mainWidget.childById!Button("buttonSet").click = delegate(Widget w) {
-			return false;
-		};
-		*/
-
-		_window.mainWidget.childById!Button("buttonSet").click = delegate(Widget w) {
-
-            int id;
-			try {
-				id = _editLineId.text.to!int;
-			} catch(Exception e) {
-				return false;
+			import std.string: split, join, format;
+			auto loadValues() {
+				//             Set Date
+				//             | Start time
+				//             | | End time
+				//             | | | length of time
+				//             | | | | comment
+				//             | | | | |  
+				return format(`%s%s%s%sc"%s"`,
+						text(`sd"`, _editLineDate.text, `" `),
+						_checkBoxTime.checked ? text(`st"`, _editLineTime.text, `" `) : "",
+						_checkBoxEndTime.checked ? text(`et"`, _editLineEndTime.text, `" `) : "",
+						_editLineDuration.text.split.join(" ") != "0 0 0" ? text(`l"`, _editLineDuration.text, `" `) : "",
+						_editLineComment.text).to!string;
 			}
 
-			auto task = _taskMan.getTask(id); 
-			if (task is null) {
-				_editBoxMain.text = _editBoxMain.text ~ "\nTask out of range!";
-
-				return false;
+			if (_checkBoxAddCat.checked) {
+				_editBoxMain.text = _editBoxMain.text ~ text("\n",
+					_editLineAddCat.text.split.join(" "), " ",
+					loadValues()).to!dstring;
 			} else {
+				int[] selection;
+				try {
+					selection = _editLineId.text.split.to!(int[]);
+				} catch(Exception e) {
+					_editBoxMain.text = _editBoxMain.text ~ "\nFailed!"d;
+
+					return false;
+				}
+
+				_control.processInput(loadValues, selection);
 				/+
-				_textWidgetCategory.text = task.id().to!dstring ~ " " ~ task.taskString.to!dstring;
-
-				_editLineDate.text = text(task.dateTime.day, " ", cast(int)task.dateTime.month, " ", task.dateTime.year).to!dstring;
-
-				_checkBoxTime.checked = task.displayTimeFlag;
-				if (_checkBoxTime.checked)
-					_editLineTime.text = text(task.dateTime.hour, " ", task.dateTime.minute, " ", task.dateTime.second).to!dstring;
-				else
-					_editLineTime.text = ""d;
-
-				_checkBoxEndTime.checked = task.displayEndTimeFlag;
-				if (_checkBoxEndTime.checked)
-					_editLineEndTime.text = text(task.endTime.hour, " ", task.endTime.minute, " ", task.endTime.second).to!dstring;
-				else
-					_editLineEndTime.text = ""d;
-				
-				if (task.timeLength.hours ==0 && task.timeLength.minutes == 0 && task.timeLength.seconds == 0)
-					_editLineDuration.text = ""d;
-				else
-					_editLineDuration.text = text(task.timeLength.hours, " ", task.timeLength.minutes, " ", task.timeLength.seconds).to!dstring;
-
-				_editLineComment.text = task.comment().to!dstring;
+				foreach(s; selection) {
+					_control.processInput("s" ~ s.to!string);
+					_control.processInput(loadValues, s);
+					_editBoxMain.text = _editBoxMain.text ~ text("s", s, "\n", loadValues, "\n").to!dstring;
+				}
 				+/
 			}
 

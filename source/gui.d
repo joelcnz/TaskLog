@@ -115,6 +115,7 @@ public:
 		_checkBoxAddCat = _window.mainWidget.childById!CheckBox("checkBoxAddCat");
 		
 <<<<<<< HEAD
+<<<<<<< HEAD
 		_window.mainWidget.childById!Button("buttonTest").click = delegate(Widget w) {
 			EditLine _editLineSpot;
 			
@@ -150,6 +151,8 @@ public:
 				if (output.length > 0) {
 					_editBoxMain.text = _editBoxMain.text ~ (output ~ "\n").to!dstring;
 =======
+=======
+>>>>>>> parent of 489dc14... Failed proper dialog box
 		import std.datetime: DateTime, Clock;
 >>>>>>> parent of 489dc14... Failed proper dialog box
 
@@ -202,6 +205,9 @@ public:
 				return false;
 			};
 
+<<<<<<< HEAD
+>>>>>>> parent of 489dc14... Failed proper dialog box
+=======
 >>>>>>> parent of 489dc14... Failed proper dialog box
 			_spotWin.show();
 
